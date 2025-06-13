@@ -218,6 +218,25 @@ app.get("/opciones/:id_votacion", async (req, res) => {
   }
 });
 
+// Nuevo endpoint para obtener votos por votación
+app.get("/votos/:id_votacion", async (req, res) => {
+  const id_votacion = req.params.id_votacion;
+  const conn = await getConnection();
+
+  try {
+    const result = await conn.execute(
+      `SELECT ID_OPCION FROM VOTOS WHERE ID_VOTACION = :v`,
+      [id_votacion]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    await conn.close();
+  }
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ API ejecutándose en http://localhost:${PORT}`);
