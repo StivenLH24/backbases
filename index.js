@@ -91,7 +91,7 @@ app.post("/votar", auth, async (req, res) => {
     // Verificar si el usuario ya votó en esta votación
     const check = await conn.execute(
       `SELECT 1 FROM VOTOS 
-       WHERE GEDULA = :c AND ID_VOTACION = :v`,
+       WHERE cedula = :c AND ID_VOTACION = :v`,
       [cedula, id_votacion]
     );
     
@@ -99,7 +99,7 @@ app.post("/votar", auth, async (req, res) => {
       // Registrar intento de voto duplicado en auditoría
       await conn.execute(
         `INSERT INTO AUDITORIA_VOTOS 
-         (ID_LOG, GEDULA, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
+         (ID_LOG, cedula, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
          VALUES (seq_id_log.NEXTVAL, :c, :v, :o, SYSTIMESTAMP, 'Intento de voto duplicado')`,
         [cedula, id_votacion, id_opcion],
         { autoCommit: true }
@@ -110,14 +110,14 @@ app.post("/votar", auth, async (req, res) => {
     // Verificar si el usuario está bloqueado
     const bloqueoCheck = await conn.execute(
       `SELECT 1 FROM BLOQUEOS 
-       WHERE GEDULA = :c AND FECHA_BLOQUEO > SYSDATE - 30`,
+       WHERE cedula = :c AND FECHA_BLOQUEO > SYSDATE - 30`,
       [cedula]
     );
     
     if (bloqueoCheck.rows.length > 0) {
       await conn.execute(
         `INSERT INTO AUDITORIA_VOTOS 
-         (ID_LOG, GEDULA, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
+         (ID_LOG, cedula, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
          VALUES (seq_id_log.NEXTVAL, :c, :v, :o, SYSTIMESTAMP, 'Intento de voto bloqueado')`,
         [cedula, id_votacion, id_opcion],
         { autoCommit: true }
@@ -128,7 +128,7 @@ app.post("/votar", auth, async (req, res) => {
     // Registrar el voto
     await conn.execute(
       `INSERT INTO VOTOS 
-       (ID_VOTO, GEDULA, ID_VOTACION, ID_OPCION, FECHA_VOTO)
+       (ID_VOTO, cedula, ID_VOTACION, ID_OPCION, FECHA_VOTO)
        VALUES (seq_id_voto.NEXTVAL, :c, :v, :o, SYSTIMESTAMP)`,
       [cedula, id_votacion, id_opcion],
       { autoCommit: true }
@@ -137,7 +137,7 @@ app.post("/votar", auth, async (req, res) => {
     // Registrar auditoría de voto exitoso
     await conn.execute(
       `INSERT INTO AUDITORIA_VOTOS 
-       (ID_LOG, GEDULA, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
+       (ID_LOG, cedula, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
        VALUES (seq_id_log.NEXTVAL, :c, :v, :o, SYSTIMESTAMP, 'Voto registrado')`,
       [cedula, id_votacion, id_opcion],
       { autoCommit: true }
