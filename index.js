@@ -50,23 +50,30 @@ app.post("/login", async (req, res) => {
 
   try {
     const result = await conn.execute(
-      `SELECT CEDULA, CONTRASENA FROM USUARIOS WHERE CEDULA = :c`,
+      `SELECT CEDULA, CONTRASENA, ROL FROM USUARIOS WHERE CEDULA = :c`,
       [cedula]
     );
 
     const usuario = result.rows[0];
+
     if (!usuario || !(await bcrypt.compare(contrasena, usuario.CONTRASENA))) {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    const token = jwt.sign({ cedula }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    res.json({ token });
+    const token = jwt.sign(
+      { cedula: usuario.CEDULA, rol: usuario.ROL },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({ token, rol: usuario.ROL }); // Se incluye el rol en la respuesta
   } catch (err) {
     res.status(500).json({ error: err.message });
   } finally {
     await conn.close();
   }
 });
+
 
 // Middleware de autenticación
 function auth(req, res, next) {
