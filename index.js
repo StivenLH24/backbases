@@ -90,7 +90,7 @@ app.post("/votar", auth, async (req, res) => {
   try {
     // Verificar si el usuario ya votó en esta votación
     const check = await conn.execute(
-      `SELECT 1 FROM MGANT_VOTOS 
+      `SELECT 1 FROM VOTOS 
        WHERE GEDULA = :c AND ID_VOTACION = :v`,
       [cedula, id_votacion]
     );
@@ -98,7 +98,7 @@ app.post("/votar", auth, async (req, res) => {
     if (check.rows.length > 0) {
       // Registrar intento de voto duplicado en auditoría
       await conn.execute(
-        `INSERT INTO MGANT_AUDITORIA_VOTOS 
+        `INSERT INTO AUDITORIA_VOTOS 
          (ID_LOG, GEDULA, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
          VALUES (seq_id_log.NEXTVAL, :c, :v, :o, SYSTIMESTAMP, 'Intento de voto duplicado')`,
         [cedula, id_votacion, id_opcion],
@@ -109,14 +109,14 @@ app.post("/votar", auth, async (req, res) => {
 
     // Verificar si el usuario está bloqueado
     const bloqueoCheck = await conn.execute(
-      `SELECT 1 FROM MGANT_BLOQUEOS 
+      `SELECT 1 FROM BLOQUEOS 
        WHERE GEDULA = :c AND FECHA_BLOQUEO > SYSDATE - 30`,
       [cedula]
     );
     
     if (bloqueoCheck.rows.length > 0) {
       await conn.execute(
-        `INSERT INTO MGANT_AUDITORIA_VOTOS 
+        `INSERT INTO AUDITORIA_VOTOS 
          (ID_LOG, GEDULA, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
          VALUES (seq_id_log.NEXTVAL, :c, :v, :o, SYSTIMESTAMP, 'Intento de voto bloqueado')`,
         [cedula, id_votacion, id_opcion],
@@ -127,7 +127,7 @@ app.post("/votar", auth, async (req, res) => {
 
     // Registrar el voto
     await conn.execute(
-      `INSERT INTO MGANT_VOTOS 
+      `INSERT INTO VOTOS 
        (ID_VOTO, GEDULA, ID_VOTACION, ID_OPCION, FECHA_VOTO)
        VALUES (seq_id_voto.NEXTVAL, :c, :v, :o, SYSTIMESTAMP)`,
       [cedula, id_votacion, id_opcion],
@@ -136,7 +136,7 @@ app.post("/votar", auth, async (req, res) => {
 
     // Registrar auditoría de voto exitoso
     await conn.execute(
-      `INSERT INTO MGANT_AUDITORIA_VOTOS 
+      `INSERT INTO AUDITORIA_VOTOS 
        (ID_LOG, GEDULA, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
        VALUES (seq_id_log.NEXTVAL, :c, :v, :o, SYSTIMESTAMP, 'Voto registrado')`,
       [cedula, id_votacion, id_opcion],
@@ -159,8 +159,8 @@ app.get("/resultados/:id_votacion", async (req, res) => {
   try {
     const result = await conn.execute(
       `SELECT o.NUMBER_OPCION AS nombre, COUNT(*) AS votos
-       FROM MGANT_VOTOS v
-       JOIN MGANT_OPCIONES_VOTACION o ON v.ID_OPCION = o.ID_OPCION
+       FROM VOTOS v
+       JOIN OPCIONES_VOTACION o ON v.ID_OPCION = o.ID_OPCION
        WHERE v.ID_VOTACION = :v
        GROUP BY o.NUMBER_OPCION`,
       [id_votacion]
@@ -183,7 +183,7 @@ app.get("/votaciones/activas", async (req, res) => {
       `SELECT ID_VOTACION, TITULO, DESCRIPTION, 
               TO_CHAR(FECHA_INICIO, 'YYYY-MM-DD') AS FECHA_INICIO,
               TO_CHAR(FECHA_FIN, 'YYYY-MM-DD') AS FECHA_FIN
-       FROM MGANT_VOTACIONES
+       FROM VOTACIONES
        WHERE ESTADO = 'ACTIVA' 
          AND FECHA_INICIO <= SYSDATE 
          AND FECHA_FIN >= SYSDATE`
@@ -205,7 +205,7 @@ app.get("/opciones/:id_votacion", async (req, res) => {
   try {
     const result = await conn.execute(
       `SELECT ID_OPCION, NUMBER_OPCION, IMAGEN_URL
-       FROM MGANT_OPCIONES_VOTACION
+       FROM OPCIONES_VOTACION
        WHERE ID_VOTACION = :v`,
       [id_votacion]
     );
