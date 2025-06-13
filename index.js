@@ -109,8 +109,8 @@ app.post("/votar", auth, async (req, res) => {
 
     // Verificar si el usuario está bloqueado
     const bloqueoCheck = await conn.execute(
-      `SELECT 1 FROM BLOQUEOS 
-       WHERE cedula = :c AND FECHA_BLOQUEO > SYSDATE - 30`,
+      `SELECT 1 FROM USUARIOS 
+        WHERE cedula = :c AND estado = 'BLOQUEADO'`,
       [cedula]
     );
     
