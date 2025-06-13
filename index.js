@@ -49,8 +49,9 @@ app.post("/login", async (req, res) => {
   const conn = await getConnection();
 
   try {
+    // Obtener el usuario incluyendo su estado y rol
     const result = await conn.execute(
-      `SELECT CEDULA, CONTRASENA, ROL FROM USUARIOS WHERE CEDULA = :c`,
+      `SELECT CEDULA, CONTRASENA, ROL, ESTADO FROM USUARIOS WHERE CEDULA = :c`,
       [cedula]
     );
 
@@ -60,19 +61,25 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
+    // Si no es admin y está bloqueado, no puede acceder
+    if (usuario.ESTADO === "BLOQUEADO") {
+      return res.status(403).json({ error: "Usuario bloqueado por intento de voto duplicado" });
+    }
+
     const token = jwt.sign(
       { cedula: usuario.CEDULA, rol: usuario.ROL },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    res.json({ token, rol: usuario.ROL }); // Se incluye el rol en la respuesta
+    res.json({ token, rol: usuario.ROL });
   } catch (err) {
     res.status(500).json({ error: err.message });
   } finally {
     await conn.close();
   }
 });
+
 
 
 // Middleware de autenticación
