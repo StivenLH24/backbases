@@ -158,11 +158,11 @@ app.get("/resultados/:id_votacion", async (req, res) => {
 
   try {
     const result = await conn.execute(
-      `SELECT o.NUMBER_OPCION AS nombre, COUNT(*) AS votos
+      `SELECT o.nombre_opcion AS nombre, COUNT(*) AS votos
        FROM VOTOS v
        JOIN OPCIONES_VOTACION o ON v.ID_OPCION = o.ID_OPCION
        WHERE v.ID_VOTACION = :v
-       GROUP BY o.NUMBER_OPCION`,
+       GROUP BY o.nombre_opcion`,
       [id_votacion]
     );
 
@@ -204,7 +204,7 @@ app.get("/opciones/:id_votacion", async (req, res) => {
   
   try {
     const result = await conn.execute(
-      `SELECT ID_OPCION, NUMBER_OPCION, IMAGEN_URL
+      `SELECT ID_OPCION, nombre_opcion, IMAGEN_URL
        FROM OPCIONES_VOTACION
        WHERE ID_VOTACION = :v`,
       [id_votacion]
