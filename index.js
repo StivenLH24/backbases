@@ -82,6 +82,7 @@ function auth(req, res, next) {
 }
 
 // Endpoint para votar
+// Endpoint para votar
 app.post("/votar", auth, async (req, res) => {
   const { id_votacion, id_opcion } = req.body;
   const cedula = req.user.cedula;
@@ -125,7 +126,7 @@ app.post("/votar", auth, async (req, res) => {
       return res.status(403).json({ error: "Usuario bloqueado para votar" });
     }
 
-    // Registrar el voto
+    // Registrar el voto (el trigger generará la auditoría automática)
     await conn.execute(
       `INSERT INTO VOTOS 
        (ID_VOTO, cedula, ID_VOTACION, ID_OPCION, FECHA_VOTO)
@@ -134,20 +135,29 @@ app.post("/votar", auth, async (req, res) => {
       { autoCommit: true }
     );
 
-    // Registrar auditoría de voto exitoso
+    res.json({ mensaje: "Voto registrado correctamente" });
+  } catch (err) {
+    // Manejo de errores generales
+    console.error("Error en el proceso de votación:", err);
+    
+    // Registrar error en auditoría
     await conn.execute(
       `INSERT INTO AUDITORIA_VOTOS 
        (ID_LOG, cedula, ID_VOTACION, ID_OPCION, FECHA_LOG, EVENTO)
-       VALUES (seq_id_log.NEXTVAL, :c, :v, :o, SYSTIMESTAMP, 'Voto registrado')`,
+       VALUES (seq_id_log.NEXTVAL, :c, :v, :o, SYSTIMESTAMP, 'Error en voto')`,
       [cedula, id_votacion, id_opcion],
       { autoCommit: true }
     );
-
-    res.json({ mensaje: "Voto registrado correctamente" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    
+    res.status(500).json({ error: "Error interno del servidor" });
   } finally {
-    await conn.close();
+    if (conn) {
+      try {
+        await conn.close();
+      } catch (e) {
+        console.error("Error cerrando conexión:", e);
+      }
+    }
   }
 });
 
